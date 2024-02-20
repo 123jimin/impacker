@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "impacker"
+version = "0.0.1"
+description = "Import Packer for Python: packs imported library code into single file, for submitting competitive programming codes."
+authors = ["Jimin Park <pjm950@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
