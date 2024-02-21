@@ -10,9 +10,58 @@ The primary purpose of this tool is to prepare Python code for submission to onl
 
 **NOTE: this project is currently work-in-progress. 이 프로젝트는 현재 개발중입니다.**
 
+## Features
+
+- Merges a Python code and its dependencies into a single file.
+- Performs tree shaking; unused codes are not included.
+- Leaves or strips comments and docstrings.
+- Compresses large source code.
+
 ## Usage
 
-Following import statements are supported:
+Consider the case where there is a library `foo.py`, and a code `main.py` using it.
 
-* `from (package_name) import *`
-* `from (package_name) import (var_name)`
+```py
+# foo.py
+
+class FooClass:
+    def __init__(self, x):
+        self.x = x
+
+def print_foo(foo):
+    print("foo", foo.x)
+
+def something_else():
+    print("something else")
+```
+
+```py
+# main.py
+from foo import FooClass, print_foo
+
+foo = FooClass(42)
+print_foo(foo)
+```
+
+impacker can be used like this:
+
+```text
+impacker main.py out.py
+```
+
+A new file `out.py` will be generated.
+
+```py
+# out.py
+
+class FooClass:
+    def __init__(self, x):
+        self.x = x
+
+def print_foo(foo):
+    print("foo", foo.x)
+
+foo = FooClass(42)
+print_foo(foo)
+
+```
