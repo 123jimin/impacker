@@ -1,5 +1,4 @@
 from .source_code import SourceCode
-from pathlib import Path
 
 class Impacker:
     """ Packs a code and its dependencies into a single file. """
