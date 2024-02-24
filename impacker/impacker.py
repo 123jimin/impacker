@@ -82,7 +82,7 @@ class Impacker:
                 case _: stmts.append(stmt)
         
         if stmts:
-            chunks.append(CodeChunk(f"From {in_code.spec.name}", stmts))
+            chunks.append(CodeChunk(f"From {in_code.name}", stmts))
 
         return (chunks, import_group)
 

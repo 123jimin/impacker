@@ -10,6 +10,7 @@ class SourceCode():
     """ Represents a source code file, with its (immediate) dependencies loaded. """
 
     spec: ModuleSpec
+    name: str
 
     root_ast: ast.Module
 
@@ -25,6 +26,8 @@ class SourceCode():
         self.spec = spec
         if not self.spec.submodule_search_locations:
             self.spec.submodule_search_locations = [str(Path(self.spec.origin).parent)]
+
+        self.name = Path(self.spec.origin).name
 
         self.global_defines = dict()
         self.imports = ImportGroup()
