@@ -1,59 +1,69 @@
 import ast
 from pathlib import Path
+from importlib.machinery import ModuleSpec
+from importlib.util import spec_from_file_location
+
+from .import_group import ImportGroup
+from .import_resolve import find_spec_from
 
 class SourceCode():
     """ Represents a source code file, with its (immediate) dependencies loaded. """
 
-    file_path: Path
+    spec: ModuleSpec
+
     root_ast: ast.Module
 
     global_defines: dict[str, ast.FunctionDef|ast.AsyncFunctionDef|ast.ClassDef]
     """ id |-> list of defined IDs """
 
-    import_star: set[str]
-    """ Set of packages that were imported using `import * from pkg` """
-
-    import_alias: dict[str, str]
-    """ alias_name |-> name of package that was imported with that alias; `import pkg as pkg2` """
-
-    import_var: dict[str, str]
-    """ var_name |-> name of package that imported the variable + name of the variable; `from pkg import foo as foo2` """
+    imports: ImportGroup
 
     unresolved_globals: set[str]
     """ List of identifiers (including ones with attributes such as x.y.z) that should have been imported """
 
-    def __init__(self, file_path:Path, encoding:str='utf-8'):
-        self.file_path = file_path
+    def __init__(self, spec: ModuleSpec, encoding:str='utf-8'):
+        self.spec = spec
+        if not self.spec.submodule_search_locations:
+            self.spec.submodule_search_locations = [str(Path(self.spec.origin).parent)]
 
         self.global_defines = dict()
-        self.import_star = set()
-        self.import_alias = dict()
-        self.import_var = dict()
+        self.imports = ImportGroup()
         self.unresolved_globals = set()
 
-        with open(file_path, 'r', encoding=encoding) as f:
+        with open(self.spec.origin, 'r', encoding=encoding) as f:
             src = f.read()
-            self.root_ast = ast.parse(src, file_path, type_comments=True)
+            self.root_ast = ast.parse(src, self.spec.origin, type_comments=True)
         
         reader = SourceCodeReader(self)
         reader.visit(self.root_ast)
 
     def __str__(self):
-        return f'<SourceCode "{self.file_path}">'
-    
+        return f'<SourceCode {self.spec}>'
+
     def add_global_define(self, def_ast: ast.FunctionDef|ast.AsyncFunctionDef|ast.ClassDef):
         self.global_defines[def_ast.name] = def_ast
     
-    def add_import(self, alias: ast.alias):
-        self.import_alias[alias.asname or alias.name] = alias.name
-
-    def add_import_from(self, module_name: str, alias: ast.alias):
-        if alias.name == '*':
-            self.import_star.add(module_name)
-        else:
-            self.import_var[alias.asname or alias.name] = f"{module_name}.{alias.name}"
+    def add_import(self, ast: ast.Import|ast.ImportFrom):
+        self.imports.add(ast)
+    
+    def find_spec(self, module_name:str) -> ModuleSpec|None:
+        return find_spec_from(module_name, self.spec)
+    
+    @staticmethod
+    def from_path(src_path: Path):
+        spec = spec_from_file_location(src_path.stem, src_path)
+        return SourceCode(spec) if spec else None
 
 class SourceCodeReader(ast.NodeVisitor):
+    """
+        Initializes a `SourceCode` object. In specific:
+        - Finds all import statements from the code.
+        - Finds which undefined global variables are being referenced.
+
+        Note: variables introduced by match-cases are currently not correctly handled.
+    """
+
+    __slots__ = ('src', 'defined_stack')
     src: SourceCode
     defined_stack: list[set[str]]
 
@@ -85,12 +95,10 @@ class SourceCodeReader(ast.NodeVisitor):
             defs.add(args_ast.kwarg.arg)
 
     def visit_Import(self, node: ast.Import):
-        for alias in node.names:
-            self.src.add_import(alias)
+        self.src.add_import(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
-        for alias in node.names:
-            self.src.add_import_from((node.level * ".") + (node.module or ""), alias)
+        self.src.add_import(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
         self.add_define(node)
@@ -114,6 +122,7 @@ class SourceCodeReader(ast.NodeVisitor):
     
     def visit_Lambda(self, node: ast.Lambda):
         self.defined_stack.append(set())
+        self.add_args(node.args)
         super().generic_visit(node)
         self.defined_stack.pop()
 

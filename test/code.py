@@ -1,5 +1,5 @@
 from foo import foo_y
-import bar
+from bar import bar_x
 
 def foo():
     def bar():
@@ -8,4 +8,4 @@ def foo():
     x += (y := 123)
     return 42 + bar()
 
-print(bar.bar_x(), foo_y(), sep=", ")
+print(bar_x(), foo_y(), sep=", ")
