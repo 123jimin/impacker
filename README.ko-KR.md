@@ -19,7 +19,8 @@
 ## 제약사항
 
 - `import x`의 꼴로 임포트 된 패키지는 합쳐지지 않습니다.
-  - `from x import y`, `from x import y as z`, `from x import *` 등의 형태를 사용 해 주세요.
+  - 합치고 싶은 모듈을 임포트 하는 경우 `from x import y`, `from x import y as z`, `from x import *` 등의 형태를 사용 해 주세요.
+  - (`math`, `collections` 등과 같은 빌트인 모듈처럼) 모듈을 합치고 싶지 않다면, `import x` 형태로 임포트 해도 상관 없습니다.
 - 트리 셰이킹을 하는 경우, 클래스 및 함수 정의만 합쳐집니다.
   - 부작용(side-effect)이 있거나, 전역 변수를 선언하는 모듈은 제대로 작동하지 않을 수 있습니다.
 - import문이 조건문이나 함수 등 블록 안에 있는 경우, 제대로 작동하지 않을 수 있습니다.
