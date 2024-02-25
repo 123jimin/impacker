@@ -35,7 +35,7 @@ def find_spec_from(module:str, from_spec: ModuleSpec, from_locs: list[str]|None 
     if module:
         segments = module.split('.')
         for i, segment in enumerate(segments):
-            if i < len(segment) - 1:
+            if i < len(segments) - 1:
                 rel_dir = rel_dir / segment
             else:
                 module_path = rel_dir / f"{segment}.py"
