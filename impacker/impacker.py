@@ -1,4 +1,4 @@
-import ast
+import ast, sys
 from dataclasses import dataclass
 from pathlib import Path
 from importlib.machinery import ModuleSpec

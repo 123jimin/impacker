@@ -1,6 +1,12 @@
+import sys
 from pathlib import Path
 from importlib.machinery import PathFinder, ModuleSpec
 from importlib.util import spec_from_file_location
+
+def is_builtin_dir(path_dir:str) -> bool:
+    return any(path_dir.startswith(builtin_dir) for builtin_dir in (sys.prefix, sys.exec_prefix))
+
+sys_path = [p for p in sys.path if p and not is_builtin_dir(p)]
 
 def split_module_name(module:str) -> tuple[int, str]:
     for level in range(len(module)):
@@ -15,6 +21,10 @@ def find_spec_from(module:str, from_spec: ModuleSpec, from_locs: list[str]|None 
     level, module = split_module_name(module)
 
     # Handle absolute import
+    if from_locs is None:
+        from_locs = from_spec.submodule_search_locations
+        if from_locs is not None:
+            from_locs = from_locs + sys_path
     if not level: return PathFinder.find_spec(module, from_locs or from_spec.submodule_search_locations)
 
     # Relative import
