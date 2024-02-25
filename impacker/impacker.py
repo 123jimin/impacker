@@ -4,6 +4,7 @@ from pathlib import Path
 from importlib.machinery import ModuleSpec
 
 from .import_group import ImportGroup, ImportModule, ImportStarFromModule, ImportFromModule
+from . import import_resolve
 from .source_code import SourceCode
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +29,8 @@ class Impacker:
     compress_lib: bool
     shake_tree: bool
 
+    _root_code: SourceCode|None
+
     _source_code_cache: dict[Path, SourceCode]
 
     _source_code_import_cache: dict[int, dict[str, SourceCode|None]]
@@ -45,12 +48,15 @@ class Impacker:
         self.compress_lib = compress_lib
         self.shake_tree = shake_tree
         
+        self._root_code = None
+
         self._source_code_cache = dict()
         self._source_code_import_cache = dict()
         self._source_code_requires = dict()
         self._source_code_externals = dict()
 
     def pack(self, in_code: SourceCode) -> str:
+        self._root_code = in_code
         self._put_source_code(in_code)
 
         if self.shake_tree:
@@ -63,8 +69,16 @@ class Impacker:
         import_header = ""
         if import_group:
             import_header = "\n".join(map(ast.unparse, import_group.to_asts())) + "\n\n"
-            
+        
         return import_header + "\n\n".join(chunk.to_code() for chunk in chunks)
+
+    def clear(self):
+        self._root_code = None
+
+        self._source_code_cache.clear()
+        self._source_code_import_cache.clear()
+        self._source_code_requires.clear()
+        self._source_code_externals.clear()
 
     def _pack_from(self, code: SourceCode, visited: set[int]) -> tuple[list[CodeChunk], ImportGroup]:
         self.log(f"- Packing {code}...")
@@ -198,11 +212,14 @@ class Impacker:
         if module in import_map:
             return import_map[module]
         
-        spec = code.find_spec(module)
+        spec = self.find_spec_from(code.spec, module)
         ret = self.get_source_code(spec) if spec else None
         
         import_map[module] = ret
         return ret
+
+    def find_spec_from(self, spec: ModuleSpec, module: str) -> ModuleSpec|None:
+        return import_resolve.find_spec_from(module, spec)
 
     def log(self, *args):
         if self.verbose: print(*args)

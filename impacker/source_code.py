@@ -5,7 +5,6 @@ from importlib.machinery import ModuleSpec
 from importlib.util import spec_from_file_location
 
 from .import_group import ImportGroup
-from .import_resolve import find_spec_from
 
 class SourceCode():
     """ Represents a source code file, with its (immediate) dependencies loaded. """
@@ -56,9 +55,6 @@ class SourceCode():
     
     def add_import(self, ast: ast.Import|ast.ImportFrom):
         self.imports.add(ast)
-    
-    def find_spec(self, module_name:str) -> ModuleSpec|None:
-        return find_spec_from(module_name, self.spec)
     
     @staticmethod
     def from_path(src_path: Path):

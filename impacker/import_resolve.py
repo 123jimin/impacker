@@ -8,14 +8,14 @@ def split_module_name(module:str) -> tuple[int, str]:
             return (level, module[level:])
     return (len(module), '')
 
-def find_spec_from(module:str, from_spec: ModuleSpec) -> ModuleSpec|None:
+def find_spec_from(module:str, from_spec: ModuleSpec, from_locs: list[str]|None = None) -> ModuleSpec|None:
     """
         Find the spec for the module, assuming that a Python code in `file_path` is trying to import it, and its package path is `package_path`.
     """
     level, module = split_module_name(module)
 
     # Handle absolute import
-    if not level: return PathFinder.find_spec(module, from_spec.submodule_search_locations)
+    if not level: return PathFinder.find_spec(module, from_locs or from_spec.submodule_search_locations)
 
     # Relative import
     rel_dir = Path(from_spec.origin)
