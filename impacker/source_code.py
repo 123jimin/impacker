@@ -1,4 +1,5 @@
 import ast
+from contextlib import contextmanager
 from pathlib import Path
 from importlib.machinery import ModuleSpec
 from importlib.util import spec_from_file_location
@@ -15,12 +16,18 @@ class SourceCode():
     root_ast: ast.Module
 
     global_defines: dict[str, ast.FunctionDef|ast.AsyncFunctionDef|ast.ClassDef]
-    """ id |-> list of defined IDs """
+    """ id |-> AST defining it. """
 
     imports: ImportGroup
 
     unresolved_globals: set[str]
-    """ List of identifiers (including ones with attributes such as x.y.z) that should have been imported """
+    """ The set of variables that must be imported from an external package. """
+
+    dependency: dict[str, set[str]]
+    """
+        id |-> list of variables dependent on it.
+        If an unresolved global occurs outside of a definition, then the key will be an empty string.
+    """
 
     def __init__(self, spec: ModuleSpec, encoding:str='utf-8'):
         self.spec = spec
@@ -32,6 +39,7 @@ class SourceCode():
         self.global_defines = dict()
         self.imports = ImportGroup()
         self.unresolved_globals = set()
+        self.dependency = dict()
 
         with open(self.spec.origin, 'r', encoding=encoding) as f:
             src = f.read()
@@ -40,8 +48,8 @@ class SourceCode():
         reader = SourceCodeReader(self)
         reader.visit(self.root_ast)
 
-    def __str__(self):
-        return f'<SourceCode {self.spec}>'
+    def __str__(self): return f"<SourceCode {repr(self.spec.origin)}>"
+    def __repr__(self): return f"SourceCode({repr(self.spec)})"
 
     def add_global_define(self, def_ast: ast.FunctionDef|ast.AsyncFunctionDef|ast.ClassDef):
         self.global_defines[def_ast.name] = def_ast
@@ -69,11 +77,13 @@ class SourceCodeReader(ast.NodeVisitor):
     __slots__ = ('src', 'defined_stack')
     src: SourceCode
     defined_stack: list[set[str]]
+    curr_top_def_name: str
 
     def __init__(self, src: SourceCode):
         super().__init__()
         self.src = src
         self.defined_stack = [set()]
+        self.curr_top_def_name = ""
     
     def is_defined(self, var_name: str) -> bool:
         for defs in reversed(self.defined_stack):
@@ -96,6 +106,45 @@ class SourceCodeReader(ast.NodeVisitor):
 
         if args_ast.kwarg:
             defs.add(args_ast.kwarg.arg)
+    
+    def add_name_read(self, name:str):
+        # Recursion
+        if name == self.curr_top_def_name: return
+
+        for i in reversed(range(len(self.defined_stack))):
+            if not i:
+                # `self.curr_top_def_name` either needs an unresolved global, or another top-level definition.
+                dep = self.src.dependency.get(self.curr_top_def_name)
+                if dep is None:
+                    dep = set()
+                    self.src.dependency[self.curr_top_def_name] = dep
+                dep.add(name)
+            if name in self.defined_stack[i]:
+                return
+        
+        self.src.unresolved_globals.add(name)
+    
+    @contextmanager
+    def handle_visit_scope(self, node: ast.FunctionDef|ast.AsyncFunctionDef|ast.ClassDef|ast.Lambda):
+        match node:
+            case ast.Lambda(): pass
+            case _:
+                self.add_define(node)
+        
+                if len(self.defined_stack) == 1:
+                    self.curr_top_def_name = node.name
+
+        self.defined_stack.append(set())
+
+        match node:
+            case ast.ClassDef(): pass
+            case _: self.add_args(node.args)
+
+        super().generic_visit(node)
+
+        self.defined_stack.pop()
+        if len(self.defined_stack) == 1:
+            self.curr_top_def_name = ""
 
     def visit_Import(self, node: ast.Import):
         self.src.add_import(node)
@@ -104,38 +153,23 @@ class SourceCodeReader(ast.NodeVisitor):
         self.src.add_import(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
-        self.add_define(node)
-        self.defined_stack.append(set())
-        self.add_args(node.args)
-        super().generic_visit(node)
-        self.defined_stack.pop()
+        self.handle_visit_scope(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
-        self.add_define(node)
-        self.defined_stack.append(set())
-        self.add_args(node.args)
-        super().generic_visit(node)
-        self.defined_stack.pop()
+        self.handle_visit_scope(node)
     
     def visit_ClassDef(self, node: ast.ClassDef):
-        self.add_define(node)
-        self.defined_stack.append(set())
-        super().generic_visit(node)
-        self.defined_stack.pop()
+        self.handle_visit_scope(node)
     
     def visit_Lambda(self, node: ast.Lambda):
-        self.defined_stack.append(set())
-        self.add_args(node.args)
-        super().generic_visit(node)
-        self.defined_stack.pop()
+        self.handle_visit_scope(node)
 
     def visit_Name(self, node: ast.Name):
         match node.ctx:
             case ast.Store():
                 self.defined_stack[-1].add(node.id)
             case ast.Load():
-                if not self.is_defined(node.id):
-                    self.src.unresolved_globals.add(node.id)
+                self.add_name_read(node.id)
 
     def visit_Attribute(self, node: ast.Attribute):
         segments = []
@@ -152,6 +186,4 @@ class SourceCodeReader(ast.NodeVisitor):
                     super().generic_visit(node.value)
                     return
         assert(len(segments) > 1)
-        segments = segments[::-1]
-        if not self.is_defined(segments[0]):
-            self.src.unresolved_globals.add(".".join(segments))
+        self.add_name_read(segments[-1])

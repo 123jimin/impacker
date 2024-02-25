@@ -33,14 +33,11 @@ class ImportGroup():
     __slots__ = ('ordered_imports',)
     ordered_imports: list[ImportModule|ImportStarFromModule|ImportFromModule]
     
-    def __init__(self):
-        self.ordered_imports = []
+    def __init__(self): self.ordered_imports = []
 
-    def __bool__(self):
-        return len(self.ordered_imports) > 0
-    
-    def __len__(self):
-        return len(self.ordered_imports)
+    def __bool__(self): return len(self.ordered_imports) > 0
+    def __len__(self): return len(self.ordered_imports)
+    def __iter__(self): yield from self.ordered_imports
     
     def add(self, node: ast.Import|ast.ImportFrom|ImportModule|ImportStarFromModule|ImportFromModule):
         match node:
