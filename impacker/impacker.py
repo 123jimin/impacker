@@ -1,4 +1,4 @@
-import ast, sys
+import ast
 from dataclasses import dataclass
 from pathlib import Path
 from importlib.machinery import ModuleSpec
@@ -56,6 +56,9 @@ class Impacker:
         self._source_code_externals = dict()
 
     def pack(self, in_code: SourceCode) -> str:
+        self.log(f"Packing {in_code}...")
+        self.log(f"- Using sys.path = {repr(import_resolve.sys_path)}")
+
         self._root_code = in_code
         self._put_source_code(in_code)
 
