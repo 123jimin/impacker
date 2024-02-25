@@ -4,7 +4,7 @@ from importlib.machinery import PathFinder, ModuleSpec
 from importlib.util import spec_from_file_location
 
 def is_builtin_dir(path_dir:str) -> bool:
-    return any(path_dir.startswith(builtin_dir) for builtin_dir in (sys.prefix, sys.exec_prefix))
+    return any(path_dir.startswith(builtin_dir) for builtin_dir in (sys.base_prefix, sys.base_exec_prefix))
 
 sys_path = [p for p in sys.path if p and not is_builtin_dir(p)]
 
