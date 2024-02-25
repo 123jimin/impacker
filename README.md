@@ -20,9 +20,9 @@ List of features:
 
 ## Limitations
 
-- Packages import via `import x` will *not* be merged.
-  - Use import statements such as `from x import y`, `from x import y or z`, or `from x import *` for the imported modules to be merged.
-  - Using `import x` is fine, as long as you don't want the module to be merged (such as built-in modules like `math`, `collections`, etc...).
+- `import` statements importing the whole module (such as `import x`, or `from x import y` where `x.y` is a module) will be left as-is.
+  - Use import statements such as `from x import y`, `from x import y or z`, or `from x import *` to properly use `impacker`.
+  - Any form of `import` is fine when you don't want the module to be merged (such as built-in modules like `math`, `collections`, etc...).
 - When tree-shaking is enabled, only the definitions for classes and functions will be merged.
   - In other words, modules with side-effects or global variables may not work correctly.
 - When the import statement is being used inside a block (such as if-else statements or functions), it may not work correctly.
