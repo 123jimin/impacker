@@ -108,7 +108,7 @@ class Impacker:
         stmts: list[ast.stmt] = []
         requires = self._source_code_requires.get(id(code))
 
-        if is_root or (requires is None):
+        if is_root or not self.shake_tree:
             # Pack everything from this source code.
             for stmt in code.root_ast.body:
                 match stmt:
