@@ -26,12 +26,22 @@ def find_spec_from(module:str, from_spec: ModuleSpec, from_locs: list[str]|None 
         if from_locs is not None:
             from_locs = from_locs + sys_path
     if not level:
+        # Try finding the whole spec
+        if spec := PathFinder.find_spec(module, from_locs):
+            return spec
+        
+        # First, try locating the root module...
         root, _, rest = module.partition('.')
-        spec = PathFinder.find_spec(root, from_locs or from_spec.submodule_search_locations)
+        if not rest: return None
+
+        spec = PathFinder.find_spec(root, from_locs)
         if (spec is None) or (not rest): return spec
-        # Use relative import
+        
+        # ... then assume that we're resolving a relative import.
+        # (This is not the correct way to find submodule, but let's ignore more complex cases.)
         module = "." + rest
         from_spec = spec
+        level = 1
 
     # Relative import
     rel_dir = Path(from_spec.origin)
