@@ -25,7 +25,13 @@ def find_spec_from(module:str, from_spec: ModuleSpec, from_locs: list[str]|None 
         from_locs = from_spec.submodule_search_locations
         if from_locs is not None:
             from_locs = from_locs + sys_path
-    if not level: return PathFinder.find_spec(module, from_locs or from_spec.submodule_search_locations)
+    if not level:
+        root, _, rest = module.partition('.')
+        spec = PathFinder.find_spec(root, from_locs or from_spec.submodule_search_locations)
+        if (spec is None) or (not rest): return spec
+        # Use relative import
+        module = "." + rest
+        from_spec = spec
 
     # Relative import
     rel_dir = Path(from_spec.origin)
