@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "impacker"
-version = "0.1.0"
+version = "0.1.1"
 description = "Import Packer for Python: packs imported library code into single file, for submitting competitive programming codes."
 authors = ["Jimin Park <pjm950@gmail.com>"]
 license = "MIT"
