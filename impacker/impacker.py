@@ -39,7 +39,7 @@ class Impacker:
     _source_code_requires: dict[int, set[str]]
     """ id(code) |-> set of variables that should be include (because they are referenced by main code) """
 
-    _source_code_externals: set[int, set[str]]
+    _source_code_externals: dict[int, set[str]]
     """ id(code) |-> set of variables that were already inspected for external package usage """
 
     def __init__(self, *, verbose=False, compress_lib=False, shake_tree=True):
@@ -86,15 +86,23 @@ class Impacker:
     def _pack_from(self, code: SourceCode, visited: set[int]) -> tuple[list[CodeChunk], ImportGroup]:
         self.log(f"- Packing {code}...")
         is_root = (len(visited) == 0)
-        visited.add(id(code))
+        code_id = id(code)
+
+        visited.add(code_id)
         
         chunks: list[CodeChunk] = list()
+
+        externals = None
+        if self.shake_tree:
+            externals = self._source_code_externals.get(code_id) or {}
 
         import_group = ImportGroup()
         for imp in code.imports.ordered_imports:
             match imp:
-                case ImportModule():
-                    import_group.add(imp)
+                case ImportModule(_, alias):
+                    # Do not import when `alias` is not marked as something that's required.
+                    if (externals is None) or (alias in externals):
+                        import_group.add(imp)
                 case _:
                     if imp_code := self.get_import(code, imp.module):
                         if id(imp_code) not in visited:
@@ -106,7 +114,6 @@ class Impacker:
                         import_group.add(imp)
 
         stmts: list[ast.stmt] = []
-        requires = self._source_code_requires.get(id(code))
 
         if is_root or not self.shake_tree:
             # Pack everything from this source code.
@@ -120,7 +127,7 @@ class Impacker:
                                 stmts.append(ast.Assign([ast.Name(alias.asname, ast.Store())], ast.Name(alias.name, ast.Load())))
                     case _:
                         stmts.append(stmt)
-        elif requires:
+        elif requires := self._source_code_requires.get(code_id):
             # Pack only what's required
             for req in requires:
                 assert req in code.global_defines
