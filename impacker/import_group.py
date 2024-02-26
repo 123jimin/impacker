@@ -59,24 +59,21 @@ class ImportGroup():
         return self
 
     def to_asts(self) -> list[ast.Import|ast.ImportFrom]:
-        imports = dict[str, list[ImportModule]]()
+        imports = set[(str, str)]()
         import_stars = dict[str, ImportStarFromModule]()
         import_froms = dict[str, list[ast.alias]]()
-
+        
         for imp in self.ordered_imports:
             match imp:
                 case ImportModule(module, alias):
-                    imports.setdefault(module, []).append(imp)
+                    imports.add((module, alias))
                 case ImportStarFromModule(module):
                     import_stars[module] = imp
                 case ImportFromModule(module, name, alias):
                     import_froms.setdefault(module, []).append(ast.alias(name, alias if alias != name else None))
         
         import_asts = list[ast.Import|ast.ImportFrom]()
-
-        for imp_list in imports.values():
-            import_asts.extend(imp.to_ast() for imp in imp_list)
-
+        import_asts.append(ast.Import([ast.alias(module, alias if alias != module else None) for (module, alias) in imports]))
         import_asts.extend(imp.to_ast() for imp in import_stars.values())
 
         for (module, alias_list) in import_froms.items():
