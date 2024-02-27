@@ -29,8 +29,6 @@ class Impacker:
     compress_lib: bool
     shake_tree: bool
 
-    _root_code: SourceCode|None
-
     _source_code_cache: dict[Path, SourceCode]
 
     _source_code_import_cache: dict[int, dict[str, SourceCode|None]]
@@ -47,8 +45,6 @@ class Impacker:
 
         self.compress_lib = compress_lib
         self.shake_tree = shake_tree
-        
-        self._root_code = None
 
         self._source_code_cache = dict()
         self._source_code_import_cache = dict()
@@ -59,7 +55,6 @@ class Impacker:
         self.log(f"Packing {in_code}...")
         self.log(f"- Using sys.path = {repr(import_resolve.sys_path)}")
 
-        self._root_code = in_code
         self._put_source_code(in_code)
 
         if self.shake_tree:
@@ -76,8 +71,6 @@ class Impacker:
         return import_header + "\n\n".join(chunk.to_code() for chunk in chunks)
 
     def clear(self):
-        self._root_code = None
-
         self._source_code_cache.clear()
         self._source_code_import_cache.clear()
         self._source_code_requires.clear()
@@ -87,6 +80,8 @@ class Impacker:
         self.log(f"- Packing {code}...")
         is_root = (len(visited) == 0)
         code_id = id(code)
+
+        code_name = "main code" if is_root else code.name
 
         visited.add(code_id)
         
@@ -113,10 +108,9 @@ class Impacker:
                     else:
                         import_group.add(imp)
 
-        stmts: list[ast.stmt] = []
-
         if is_root or not self.shake_tree:
             # Pack everything from this source code.
+            stmts: list[ast.stmt] = []
             for stmt in code.root_ast.body:
                 match stmt:
                     case ast.Import(_):
@@ -127,14 +121,13 @@ class Impacker:
                                 stmts.append(ast.Assign([ast.Name(alias.asname, ast.Store())], ast.Name(alias.name, ast.Load())))
                     case _:
                         stmts.append(stmt)
+            if stmts:
+                chunks.append(CodeChunk(f"From {code_name}", [ast.fix_missing_locations(stmt) for stmt in stmts]))
         elif requires := self._source_code_requires.get(code_id):
             # Pack only what's required
             for req in requires:
-                assert req in code.global_defines
-                stmts.append(code.global_defines[req])
-        
-        if stmts:
-            chunks.append(CodeChunk(f"From {code.name}", [ast.fix_missing_locations(stmt) for stmt in stmts]))
+                req_def = code.global_defines[req]
+                chunks.append(CodeChunk(f"{req_def.name} | from {code_name}, line {req_def.lineno}", [req_def]))
 
         return (chunks, import_group)
 
