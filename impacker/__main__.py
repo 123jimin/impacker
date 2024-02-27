@@ -3,7 +3,7 @@ from pathlib import Path
 
 from . import SourceCode, Impacker
 
-parser = argparse.ArgumentParser(description="Merge a Python code and its dependencies into a single file.")
+parser = argparse.ArgumentParser(prog="impacker", description="Merge a Python code and its dependencies into a single file.")
 
 parser.add_argument('-c', '--compress-lib', help="compress packed library codes", action='store_true')
 parser.add_argument('-v', '--verbose', help="prints verbose log", action='store_true')
