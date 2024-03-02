@@ -9,7 +9,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "impacker",
-            "args": ["-v", "test/code.py", "test/out.py"]
+            "args": ["-v", "tmp/code.py", "tmp/out.py"]
         }
     ]
 }
