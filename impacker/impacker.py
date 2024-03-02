@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from importlib.machinery import ModuleSpec
 
+from .docstring_remover import DocstringRemover
 from .import_group import ImportGroup, ImportModule, ImportStarFromModule, ImportFromModule
 from . import import_resolve
 from .source_code import SourceCode
@@ -17,6 +18,11 @@ class CodeChunk:
         if comment and self.comment:
             code = "\n".join(f"# {line}" for line in self.comment.split("\n")) + "\n" + code
         return code
+    
+    def apply_transform(self, transformer: ast.NodeTransformer|None):
+        if not transformer: return
+        for i, stmt in enumerate(self.chunk):
+            self.chunk[i] = transformer.visit(stmt)
 
     def __str__(self) -> str:
         return self.to_code()
@@ -26,8 +32,10 @@ class Impacker:
 
     verbose: bool
 
-    compress_lib: bool
     shake_tree: bool
+
+    include_source_location: bool
+    strip_docstring: bool
 
     _source_code_cache: dict[Path, SourceCode]
 
@@ -40,11 +48,13 @@ class Impacker:
     _source_code_externals: dict[int, set[str]]
     """ id(code) |-> set of variables that were already inspected for external package usage """
 
-    def __init__(self, *, verbose=False, compress_lib=False, shake_tree=True):
+    def __init__(self, *, verbose=False, shake_tree=True, strip=False, include_source_location=True, strip_docstring=False):
         self.verbose = verbose
 
-        self.compress_lib = compress_lib
         self.shake_tree = shake_tree
+
+        self.strip_docstring = strip_docstring or strip
+        self.include_source_location = include_source_location and not strip
 
         self._source_code_cache = dict()
         self._source_code_import_cache = dict()
@@ -66,9 +76,15 @@ class Impacker:
         chunks, import_group = self._pack_from(in_code, set())
         import_header = ""
         if import_group:
-            import_header = "\n".join(map(ast.unparse, import_group.to_asts())) + "\n\n"
+            import_header = "\n".join(map(ast.unparse, import_group.to_asts()))
         
-        return import_header + "\n\n".join(chunk.to_code() for chunk in chunks)
+        if self.strip_docstring:
+            docstring_remover = DocstringRemover()
+            for chunk in chunks: chunk.apply_transform(docstring_remover)
+
+        import_body = "\n\n".join(chunk.to_code(self.include_source_location) for chunk in chunks)
+
+        return f"{import_header}\n\n{import_body}"
 
     def clear(self):
         self._source_code_cache.clear()

@@ -9,7 +9,7 @@
 
 - 파이썬 코드에서 import하는 다른 코드를 합쳐 하나의 파일로 만들기.
 - 트리 셰이킹 (메인 코드에서 사용중인 코드만 포함)
-- (계획) 주석 / docstring을 남기거나 제거하기
+- Docstring을 남기거나 제거하기
 - (계획) 큰 소스 코드 압축
 
 ## 사용 예시
@@ -81,17 +81,20 @@ poetry run python -m impacker -h
 ```
 
 ```text
-usage: impacker [-h] [-c] [-v] [--no-shake-tree] IN_FILE OUT_FILE
+usage: impacker [-h] [-v] [--no-shake-tree] [-s] [--strip-docstring] [--no-include-source-location] IN_FILE OUT_FILE
 
-Merge a Python code and its dependencies into a single file.     
+Merge a Python code and its dependencies into a single file.
 
 positional arguments:
-  IN_FILE             code file to pack
-  OUT_FILE            name of file to generate
+  IN_FILE               code file to pack
+  OUT_FILE              name of file to generate
 
 options:
-  -h, --help          show this help message and exit
-  -c, --compress-lib  compress packed library codes
-  -v, --verbose       prints verbose log
-  --no-shake-tree     do not shake import tree
+  -h, --help            show this help message and exit
+  -v, --verbose         prints verbose log
+  --no-shake-tree       do not shake import tree
+  -s, --strip           strip all comments and docstrings
+  --strip-docstring     strip all docstrings
+  --no-include-source-location
+                        omit source code location comments
 ```

@@ -11,7 +11,7 @@ In specific, the competitive programming library for Python, [ckp](https://githu
 
 - Merges a Python code and its dependencies into a single file.
 - Performs tree shaking; unused codes are not included.
-- (Planned) Leaves or strips comments and docstrings.
+- Leaves or strips docstrings.
 - (Planned) Compresses large source code.
 
 ## Example
@@ -82,17 +82,20 @@ poetry run python -m impacker -h
 ```
 
 ```text
-usage: impacker [-h] [-c] [-v] [--no-shake-tree] IN_FILE OUT_FILE
+usage: impacker [-h] [-v] [--no-shake-tree] [-s] [--strip-docstring] [--no-include-source-location] IN_FILE OUT_FILE
 
-Merge a Python code and its dependencies into a single file.     
+Merge a Python code and its dependencies into a single file.
 
 positional arguments:
-  IN_FILE             code file to pack
-  OUT_FILE            name of file to generate
+  IN_FILE               code file to pack
+  OUT_FILE              name of file to generate
 
 options:
-  -h, --help          show this help message and exit
-  -c, --compress-lib  compress packed library codes
-  -v, --verbose       prints verbose log
-  --no-shake-tree     do not shake import tree
+  -h, --help            show this help message and exit
+  -v, --verbose         prints verbose log
+  --no-shake-tree       do not shake import tree
+  -s, --strip           strip all comments and docstrings
+  --strip-docstring     strip all docstrings
+  --no-include-source-location
+                        omit source code location comments
 ```
