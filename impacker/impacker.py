@@ -89,7 +89,7 @@ class Impacker:
 
         externals = None
         if self.shake_tree:
-            externals = self._source_code_externals.get(code_id) or {}
+            externals = self._source_code_externals.get(code_id)
 
         import_group = ImportGroup()
         for imp in code.imports.ordered_imports:
