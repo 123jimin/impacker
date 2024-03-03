@@ -46,7 +46,7 @@ class Impacker:
     """ id(code) |-> set of variables that should be include (because they are referenced by main code) """
 
     _source_code_externals: dict[int, set[str]]
-    """ id(code) |-> set of variables that were already inspected for external package usage """
+    """ id(code) |-> set of variables that should be imported for this code """
 
     def __init__(self, *, verbose=False, shake_tree=True, strip=False, include_source_location=True, strip_docstring=False):
         self.verbose = verbose
@@ -66,6 +66,7 @@ class Impacker:
         self.log(f"- Using sys.path = {repr(import_resolve.sys_path)}")
 
         self._put_source_code(in_code)
+        self._source_code_externals[id(in_code)] = in_code.unresolved_globals.copy()
 
         if self.shake_tree:
             self.log("Marking which definitions should be exported...")
@@ -108,7 +109,7 @@ class Impacker:
 
         externals = None
         if self.shake_tree:
-            externals = self._source_code_externals.get(code_id)
+            externals = self._source_code_externals.get(code_id) or {}
 
         import_group = ImportGroup()
         for imp in code.imports.ordered_imports:
