@@ -84,7 +84,10 @@ class Impacker:
 
         import_body = "\n\n".join(chunk.to_code(self.include_source_location) for chunk in chunks)
 
-        return f"{import_header}\n\n{import_body}"
+        if import_header:
+            return f"{import_header}\n\n{import_body}"
+        else:
+            return import_body
 
     def clear(self):
         self._source_code_cache.clear()
