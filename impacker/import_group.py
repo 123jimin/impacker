@@ -61,7 +61,7 @@ class ImportGroup():
     def to_asts(self) -> list[ast.Import|ast.ImportFrom]:
         imports = set[(str, str)]()
         import_stars = dict[str, ImportStarFromModule]()
-        import_froms = dict[str, list[ast.alias]]()
+        import_froms = dict[str, (set[str], list[ast.alias])]()
         
         for imp in self.ordered_imports:
             match imp:
@@ -70,13 +70,24 @@ class ImportGroup():
                 case ImportStarFromModule(module):
                     import_stars[module] = imp
                 case ImportFromModule(module, name, alias):
-                    import_froms.setdefault(module, []).append(ast.alias(name, alias if alias != name else None))
+                    import_from = import_froms.get(module)
+                    if import_from is None:
+                        import_from = (set[str](), list[ast.alias]())
+                        import_froms[module] = import_from
+                    
+                    s, l = import_from
+                    if alias not in s:
+                        s.add(alias)
+                        l.append(ast.alias(name, alias if alias != name else None))
         
         import_asts = list[ast.Import|ast.ImportFrom]()
-        import_asts.append(ast.Import([ast.alias(module, alias if alias != module else None) for (module, alias) in imports]))
+
+        if len(imports) > 0:
+            import_asts.append(ast.Import([ast.alias(module, alias if alias != module else None) for (module, alias) in imports]))
+        
         import_asts.extend(imp.to_ast() for imp in import_stars.values())
 
-        for (module, alias_list) in import_froms.items():
+        for (module, (_, alias_list)) in import_froms.items():
             level, module = split_module_name(module)
             import_asts.append(ast.ImportFrom(module, alias_list, level))
 
