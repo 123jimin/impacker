@@ -27,5 +27,5 @@ impacker = Impacker(**vars(args))
 in_code = SourceCode.from_path(in_file)
 
 out_code = impacker.pack(in_code)
-with open(out_file, 'w') as f:
+with open(out_file, 'w', encoding='utf-8') as f:
     f.write(out_code)
