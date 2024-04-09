@@ -149,10 +149,13 @@ class Impacker:
             if stmts:
                 chunks.append(CodeChunk(f"From {code_name}", [ast.fix_missing_locations(stmt) for stmt in stmts]))
         elif requires := self._source_code_requires.get(code_id):
-            # Pack only what's required
+            # Pack only what's required, in the order they appear in original source code.
+            req_defs = []
             for req in requires:
                 req_def = code.global_defines[req]
-                chunks.append(CodeChunk(f"{req_def.name} | from {code_name}, line {req_def.lineno}", [req_def]))
+                req_defs.append(((req_def.lineno, req_def.col_offset), req_def))
+            
+            chunks.extend(CodeChunk(f"{req_def.name} | from {code_name}, line {req_def.lineno}", [req_def]) for (_, req_def) in sorted(req_defs))
 
         return (chunks, import_group)
 
