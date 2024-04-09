@@ -108,15 +108,18 @@ class Impacker:
         chunks: list[CodeChunk] = list()
 
         externals = None
+        need_externals = False
+
         if self.shake_tree:
-            externals = self._source_code_externals.get(code_id) or {}
+            externals = self._source_code_externals.get(code_id)
+            need_externals = True
 
         import_group = ImportGroup()
         for imp in code.imports.ordered_imports:
             match imp:
                 case ImportModule(_, alias):
                     # Do not import when `alias` is not marked as something that's required.
-                    if (externals is None) or (alias in externals):
+                    if (not need_externals) or (externals and (alias in externals)):
                         import_group.add(imp)
                 case _:
                     if imp_code := self.get_import(code, imp.module):
@@ -126,7 +129,9 @@ class Impacker:
                             chunks.extend(module_chunks)
                             import_group.extend(module_import_group)
                     else:
-                        import_group.add(imp)
+                        # TODO: do not include unused `import module` or `from module import *` statements.
+                        if (not need_externals) or externals:
+                            import_group.add(imp)
 
         if is_root or not self.shake_tree:
             # Pack everything from this source code.
