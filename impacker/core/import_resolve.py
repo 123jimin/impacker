@@ -1,3 +1,7 @@
+"""
+    This file contains methods for locating module files.
+"""
+
 import sys
 from pathlib import Path
 from importlib.machinery import PathFinder, ModuleSpec

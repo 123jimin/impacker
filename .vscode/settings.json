@@ -4,6 +4,11 @@
         "docstrings",
         "froms",
         "impacker",
-        "primality"
+        "Jimin",
+        "kwonlyargs",
+        "posonlyargs",
+        "primality",
+        "reqs",
+        "vararg"
     ]
 }

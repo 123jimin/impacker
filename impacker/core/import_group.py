@@ -1,10 +1,16 @@
+"""
+    This file contains classes (most notably `ImportGroup`) for representing import statements.
+"""
+
 import ast
 from dataclasses import dataclass
+from typing import Self
 
 from .import_resolve import split_module_name
 
 @dataclass(frozen=True, slots=True)
 class ImportModule():
+    """ `import {module} as {alias}`, including `import {module}` (where `module == alias`) """
     module: str
     alias: str
 
@@ -13,6 +19,7 @@ class ImportModule():
 
 @dataclass(frozen=True, slots=True)
 class ImportStarFromModule():
+    """ `from {module} import *` """
     module: str
 
     def to_ast(self) -> ast.ImportFrom:
@@ -21,6 +28,7 @@ class ImportStarFromModule():
 
 @dataclass(frozen=True, slots=True)
 class ImportFromModule():
+    """ `from {module} import {name} as {alias}` including `from {module} import {name}` (where `name == alias`) """
     module: str
     name: str
     alias: str
@@ -29,7 +37,9 @@ class ImportFromModule():
         level, module = split_module_name(self.module)
         return ast.ImportFrom(module, [ast.alias(self.name, self.alias if self.alias != self.name else None)], level)
 
-class ImportGroup():
+class ImportGroup:
+    """ A collection of multiple import statements. """
+
     __slots__ = ('ordered_imports',)
     ordered_imports: list[ImportModule|ImportStarFromModule|ImportFromModule]
     
@@ -40,6 +50,7 @@ class ImportGroup():
     def __iter__(self): yield from self.ordered_imports
     
     def add(self, node: ast.Import|ast.ImportFrom|ImportModule|ImportStarFromModule|ImportFromModule):
+        """ Adds an import statement to the group. """
         match node:
             case ast.Import(names):
                 for alias in names:
@@ -54,11 +65,13 @@ class ImportGroup():
             case _:
                 self.ordered_imports.append(node)
 
-    def extend(self, other):
+    def extend(self, other: Self):
+        """ Extends the group with another group. """
         self.ordered_imports.extend(other.ordered_imports)
         return self
 
     def to_asts(self) -> list[ast.Import|ast.ImportFrom]:
+        """ Converts the group to a list of AST nodes. """
         imports = set[tuple[str, str]]()
         import_stars = dict[str, ImportStarFromModule]()
         import_froms = dict[str, tuple[set[str], list[ast.alias]]]()

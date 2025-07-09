@@ -36,11 +36,19 @@ class Impacker:
     """ Packs a code and its dependencies into a single file. """
 
     verbose: bool
+    """ Whether to print verbose log. """
 
     shake_tree: bool
+    """ Whether to remove unused imports. """
+
+    inline: bool
+    """ Whether to inline functions decorated with `@inline`. """
 
     include_source_location: bool
+    """ Whether to include source location comments. """
+
     strip_docstring: bool
+    """ Whether to strip docstrings. """
 
     _source_code_cache: dict[Path, SourceCode]
 
@@ -53,7 +61,7 @@ class Impacker:
     _source_code_externals: dict[int, set[str]]
     """ id(code) |-> set of variables that should be imported for this code """
 
-    def __init__(self, *, verbose=False, shake_tree=True, strip=False, include_source_location=True, strip_docstring=False):
+    def __init__(self, *, verbose=False, shake_tree=True, inline=True, strip=False, include_source_location=True, strip_docstring=False):
         self.verbose = verbose
 
         self.shake_tree = shake_tree
@@ -67,6 +75,8 @@ class Impacker:
         self._source_code_externals = dict()
 
     def pack(self, in_code: SourceCode) -> str:
+        """ Pack the given source code into a single string. """
+
         self.log(f"Packing {in_code}...")
         self.log(f"- Using sys.path = {repr(import_resolve.sys_path)}")
 
@@ -96,6 +106,7 @@ class Impacker:
             return import_body
 
     def clear(self):
+        """ Clear all caches. """
         self._source_code_cache.clear()
         self._source_code_import_cache.clear()
         self._source_code_requires.clear()

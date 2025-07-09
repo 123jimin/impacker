@@ -8,6 +8,9 @@ def parse_args():
     parser.add_argument('-v', '--verbose', help="prints verbose log", action='store_true')
     parser.add_argument('--no-shake-tree', dest='shake_tree', help="do not shake import tree", action='store_const', const=False, default=True)
 
+    # TODO: implement this option!
+    parser.add_argument('--no-inline', dest='inline', help="do not inline functions decorated with `@inline`", action='store_const', const=False, default=True)
+
     parser.add_argument('-s', '--strip', help="strip all comments and docstrings", action='store_true')
     parser.add_argument('--strip-docstring',help="strip all docstrings", action='store_true')
     parser.add_argument('--no-include-source-location', dest='include_source_location', help="omit source code location comments", action='store_const', const=False, default=True)

@@ -6,7 +6,7 @@ from importlib.util import spec_from_file_location
 
 from .import_group import ImportGroup
 
-class SourceCode():
+class SourceCode:
     """ Represents a source code file, with its (immediate) dependencies loaded. """
 
     spec: ModuleSpec
@@ -18,6 +18,7 @@ class SourceCode():
     """ id |-> AST defining it. """
 
     imports: ImportGroup
+    """ The imports of this source code. """
 
     unresolved_globals: set[str]
     """ The set of variables that must be imported from an external package. """
@@ -25,24 +26,26 @@ class SourceCode():
     dependency: dict[str, set[str]]
     """
         id |-> list of variables dependent on it.
+        
         If an unresolved global occurs outside of a definition, then the key will be an empty string.
     """
 
     def __init__(self, spec: ModuleSpec, encoding:str='utf-8'):
+        spec_origin_path = Path(spec.origin or "")
         self.spec = spec
         if not self.spec.submodule_search_locations:
-            self.spec.submodule_search_locations = [str(Path(self.spec.origin).parent)]
+            self.spec.submodule_search_locations = [str(spec_origin_path.parent)]
 
-        self.name = Path(self.spec.origin).name
+        self.name = spec_origin_path.name
 
         self.global_defines = dict()
         self.imports = ImportGroup()
         self.unresolved_globals = set()
         self.dependency = dict()
 
-        with open(self.spec.origin, 'r', encoding=encoding) as f:
+        with open(spec_origin_path, 'r', encoding=encoding) as f:
             src = f.read()
-            self.root_ast = ast.parse(src, self.spec.origin, type_comments=True)
+            self.root_ast = ast.parse(src, spec_origin_path, type_comments=True)
         
         reader = SourceCodeReader(self)
         reader.visit(self.root_ast)
@@ -72,7 +75,8 @@ class SourceCodeReader(ast.NodeVisitor):
         Note: variables introduced by match-cases are currently not correctly handled.
     """
 
-    __slots__ = ('src', 'defined_stack')
+    __slots__ = ('src', 'defined_stack', 'curr_top_def_name')
+
     src: SourceCode
     defined_stack: list[set[str]]
     curr_top_def_name: str
