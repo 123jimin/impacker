@@ -27,7 +27,7 @@ class ImportFromModule():
     
     def to_ast(self) -> ast.ImportFrom:
         level, module = split_module_name(self.module)
-        return ast.ImportFrom(module, [ast.alias(self.name, self.alias if self.alias != self.anme else None)], level)
+        return ast.ImportFrom(module, [ast.alias(self.name, self.alias if self.alias != self.name else None)], level)
 
 class ImportGroup():
     __slots__ = ('ordered_imports',)
@@ -59,9 +59,9 @@ class ImportGroup():
         return self
 
     def to_asts(self) -> list[ast.Import|ast.ImportFrom]:
-        imports = set[(str, str)]()
+        imports = set[tuple[str, str]]()
         import_stars = dict[str, ImportStarFromModule]()
-        import_froms = dict[str, (set[str], list[ast.alias])]()
+        import_froms = dict[str, tuple[set[str], list[ast.alias]]]()
         
         for imp in self.ordered_imports:
             match imp:

@@ -10,21 +10,26 @@ from .source_code import SourceCode
 
 @dataclass(frozen=True, slots=True)
 class CodeChunk:
+    """ Represents a chunk of code, with optional comment attached. """
+
     comment: str
     chunk: list[ast.stmt]
 
     def to_code(self, comment=True) -> str:
+        """ Unparse the chunk into code. Set `comment=False` to omit the comment. """
         code = "\n".join(map(ast.unparse, self.chunk))
         if comment and self.comment:
             code = "\n".join(f"# {line}" for line in self.comment.split("\n")) + "\n" + code
         return code
     
     def apply_transform(self, transformer: ast.NodeTransformer|None):
+        """ Apply `transformer` to each statement in this chunk. """
         if not transformer: return
         for i, stmt in enumerate(self.chunk):
             self.chunk[i] = transformer.visit(stmt)
 
     def __str__(self) -> str:
+        """ Unparse the chunk into code, with comments attached. """
         return self.to_code()
 
 class Impacker:
@@ -43,7 +48,7 @@ class Impacker:
     """ id(code) |-> module |-> get_source_code(code.find_spec(module))"""
     
     _source_code_requires: dict[int, set[str]]
-    """ id(code) |-> set of variables that should be include (because they are referenced by main code) """
+    """ id(code) |-> set of variables that should be included (because they are referenced by main code) """
 
     _source_code_externals: dict[int, set[str]]
     """ id(code) |-> set of variables that should be imported for this code """
@@ -219,7 +224,7 @@ class Impacker:
     def get_source_code(self, spec: ModuleSpec) -> SourceCode:
         code_path = spec.origin
 
-        if code := self._source_code_cache.get(code_path):
+        if code := self._source_code_cache.get(Path(code_path or "")):
             return code
 
         code = SourceCode(spec)
@@ -230,7 +235,7 @@ class Impacker:
         return spec.origin in self._source_code_cache
 
     def _put_source_code(self, code: SourceCode):
-        self._source_code_cache[code.spec.origin] = code
+        self._source_code_cache[Path(code.spec.origin or "")] = code
         self._source_code_requires[id(code)] = set()
 
     def get_import(self, code: SourceCode, module: str) -> SourceCode|None:

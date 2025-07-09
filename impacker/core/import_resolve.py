@@ -9,12 +9,13 @@ def is_builtin_dir(path_dir:str) -> bool:
 sys_path = [p for p in sys.path if p and not is_builtin_dir(p)]
 
 def split_module_name(module:str) -> tuple[int, str]:
+    """ Returns `(level, module)`, where `level` is the distance to the top-level package. """
     for level in range(len(module)):
         if module[level] != '.':
             return (level, module[level:])
     return (len(module), '')
 
-def find_spec_from(module:str, from_spec: ModuleSpec, from_locs: list[str]|None = None) -> ModuleSpec|None:
+def find_spec_from(module: str, from_spec: ModuleSpec, from_locs: list[str]|None = None) -> ModuleSpec|None:
     """
         Find the spec for the module, assuming that a Python code in `file_path` is trying to import it, and its package path is `package_path`.
     """
@@ -44,7 +45,7 @@ def find_spec_from(module:str, from_spec: ModuleSpec, from_locs: list[str]|None 
         level = 1
 
     # Relative import
-    rel_dir = Path(from_spec.origin)
+    rel_dir = Path(from_spec.origin or "")
     for _ in range(level):
         rel_dir = rel_dir.parent
     assert rel_dir.is_dir()
