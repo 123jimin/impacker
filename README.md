@@ -13,19 +13,20 @@ In specific, the competitive programming library for Python, [ckp](https://githu
 - Performs tree shaking; unused codes are not included.
 - Leaves or strips docstrings.
 - (Planned) Compresses large source code.
+- (Planned) Inline small functions.
 
 ## Example
 
 This code checks whether a given number is a prime number, using `ckp`.
 
 ```py
-from ckp.number_theory import is_prime_naive
+from ckp.number_theory.primality_test import is_prime_trial_division
 
 N = int(input())
-print(is_prime_naive(N))
+print(is_prime_trial_division(N))
 ```
 
-This code can't be run independently; `ckp` must be installed to run this file.
+As-is, this code can't be run independently.
 
 Assuming that the code's filename is `code.py`, and you wish the result file's name to be `out.py`, impacker can be run like the following:
 
@@ -36,26 +37,25 @@ poetry run python -m impacker code.py out.py
 `out.py` will contain the packed source code, which can be run without `ckp`.
 
 ```py
-import math
+from math import isqrt
 
-# From primality_test.py
-def is_prime_naive(n: int) -> bool:
-    """
-        Naive primality testing.
-        - Time: `O(sqrt(n))`
-    """
-    if n < 100:
-        return n in {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97}
-    if n % 2 == 0 or n % 3 == 0 or n % 5 == 0 or (n % 7 == 0) or (n % 11 == 0):
+# is_prime_trial_division | from primality_test.py, line 3
+def is_prime_trial_division(n: int) -> bool:
+    """ Primality testing using trial division. Slow but good enough for simple problems. """
+    if n < 53:
+        return n in {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47}
+    if not (n & 1 and n % 3 and n % 5 and n % 7 and n % 11 and n % 13):
         return False
-    for p in range(13, math.isqrt(n) + 1, 6):
-        if n % p == 0 or n % (p + 4) == 0:
+    if n < 289:
+        return True
+    for p in range(17, isqrt(n) + 1, 6):
+        if not (n % p and n % (p + 2)):
             return False
     return True
 
-# From test.py
+# From main code
 N = int(input())
-print(is_prime_naive(N))
+print(is_prime_trial_division(N))
 ```
 
 ## Limitations
