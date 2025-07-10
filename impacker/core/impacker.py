@@ -182,7 +182,7 @@ class Impacker:
         self.log(f"- Inspecting {code} for {repr(requires)}...")
 
         code_id = id(code)
-        req_set = self._source_code_requires[code_id]
+        req_set = self._source_code_requires.get(code_id)
         if req_set is None:
             req_set = set[str]()
             self._source_code_requires[code_id] = req_set
