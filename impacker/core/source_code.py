@@ -1,5 +1,4 @@
 import ast
-from contextlib import contextmanager
 from pathlib import Path
 from importlib.machinery import ModuleSpec
 from importlib.util import spec_from_file_location
@@ -126,7 +125,6 @@ class SourceCodeReader(ast.NodeVisitor):
         
         self.src.unresolved_globals.add(name)
     
-    @contextmanager
     def handle_visit_scope(self, node: ast.FunctionDef|ast.AsyncFunctionDef|ast.ClassDef|ast.Lambda):
         match node:
             case ast.Lambda(): pass
