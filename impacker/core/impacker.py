@@ -243,7 +243,7 @@ class Impacker:
         return code
 
     def has_source_code(self, spec: ModuleSpec) -> bool:
-        return spec.origin in self._source_code_cache
+        return Path(spec.origin or "") in self._source_code_cache
 
     def _put_source_code(self, code: SourceCode):
         self._source_code_cache[Path(code.spec.origin or "")] = code

@@ -62,6 +62,8 @@ class SourceCode:
     def from_path(src_path: Path|str):
         if not isinstance(src_path, Path):
             src_path = Path(src_path)
+        if not src_path.is_file():
+            return None
         spec = spec_from_file_location(src_path.stem, src_path)
         return SourceCode(spec) if spec else None
 
